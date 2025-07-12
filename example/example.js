@@ -2,7 +2,7 @@
  * Practical Example: Secure Chat Application
  * 
  * This example demonstrates how to build a simple secure chat system
- * using the Encryption library.
+ * using the Nudge library.
  */
 
 const Encryption = require('./encryption.js');

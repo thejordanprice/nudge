@@ -1,12 +1,12 @@
 /**
- * Encryption Library
+ * Nudge
  * 
  * - ECDH key exchange
  * - Double ratchet algorithm for forward secrecy
  * - Envelope encryption for secure messaging
  * - Session management with state persistence
  * 
- * @author Encryption Library
+ * @author thejordanprice
  * @version 2.0.0
  */
 

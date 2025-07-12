@@ -1,5 +1,5 @@
 /**
- * Test file for Encryption library
+ * Test file for Nudge library
  * Demonstrates key functionality and usage patterns
  */
 
@@ -7,7 +7,7 @@
 const Encryption = require('./encryption.js');
 
 async function runTests() {
-  console.log('🧪 Testing Encryption Library\n');
+  console.log('🧪 Testing Nudge\n');
 
   try {
     // Test 1: User Creation

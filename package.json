@@ -1,13 +1,14 @@
 {
-  "name": "secure-encryption",
+  "name": "nudge",
   "version": "2.0.0",
   "description": "A professional JavaScript encryption library with ECDH key exchange, double ratchet algorithm, and envelope encryption",
-  "main": "secure-encryption.js",
+  "main": "encryption.js",
   "scripts": {
-    "test": "node test.js",
-    "test:browser": "node serve-test.js",
-    "lint": "eslint secure-encryption.js",
-    "docs": "jsdoc secure-encryption.js -d docs",
+    "test": "node test/test.js",
+    "test:browser": "open test/test.html",
+    "server": "node server.js",
+    "lint": "eslint encryption.js",
+    "docs": "jsdoc encryption.js -d docs",
     "build": "echo 'No build step required - pure JavaScript library'",
     "prepublishOnly": "npm test"
   },
@@ -25,18 +26,18 @@
     "hkdf"
   ],
   "author": {
-    "name": "Secure Encryption Library",
-    "email": "security@example.com"
+    "name": "thejordanprice",
+    "email": "thejordanprice@gmx.com"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/example/secure-encryption.git"
+    "url": "https://github.com/thejordanprice/nudge.git"
   },
   "bugs": {
-    "url": "https://github.com/example/secure-encryption/issues"
+    "url": "https://github.com/thejordanprice/nudge/issues"
   },
-  "homepage": "https://github.com/example/secure-encryption#readme",
+  "homepage": "https://github.com/thejordanprice/nudge#readme",
   "engines": {
     "node": ">=14.0.0"
   },
@@ -51,12 +52,12 @@
     "jsdoc": "^4.0.0"
   },
   "files": [
-    "secure-encryption.js",
+    "encryption.js",
     "README.md",
     "LICENSE"
   ],
   "directories": {
-    "example": "examples"
+    "example": "example"
   },
   "publishConfig": {
     "access": "public"

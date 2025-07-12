@@ -1,4 +1,4 @@
-# Encryption Library
+# Nudge
 
 A professional, modern JavaScript encryption library that provides end-to-end encryption with forward secrecy, perfect forward secrecy, and secure messaging capabilities. Built with native Web Crypto API and ES6+ features.
 
@@ -24,7 +24,7 @@ A professional, modern JavaScript encryption library that provides end-to-end en
 
 ### Node.js
 ```bash
-npm install encryption-library
+npm install nudge
 ```
 
 ```javascript
@@ -103,7 +103,11 @@ npm test
 ```
 
 ### Browser Testing
-Open `test.html` in a modern browser to run the complete test suite.
+```bash
+npm run test:browser
+```
+
+Or open `test/test.html` in a modern browser to run the complete test suite.
 
 ### Test Coverage
 - ✅ User creation and persistence
@@ -119,7 +123,7 @@ Open `test.html` in a modern browser to run the complete test suite.
 
 ### Complete Chat Application
 
-See `example.js` for a full-featured secure chat application demonstrating:
+See `example/example.js` for a full-featured secure chat application demonstrating:
 
 - User registration and management
 - Pre-key creation and session establishment
@@ -130,7 +134,7 @@ See `example.js` for a full-featured secure chat application demonstrating:
 
 ```javascript
 // Run the complete example
-node example.js
+node example/example.js
 ```
 
 ### Basic Usage Example
@@ -347,18 +351,26 @@ You can run the server in a Docker container. The provided Dockerfile will build
 ### Build the Docker Image
 
 ```bash
-docker build -t e2e-encryption .
+docker build -t nudge .
 ```
 
 ### Run the Docker Container
 
 ```bash
-docker run -p 8080:8080 e2e-encryption
+docker run -p 8080:8080 nudge
 ```
 
 This will start the server and map port 8080 of the container to port 8080 on your host machine.
 
 ## Development
+
+### Running the Server
+```bash
+# Start the WebSocket server
+npm run server
+```
+
+This will start the server on port 8080. You can then open `client.html` in your browser to test the chat application.
 
 ### Running Tests
 ```bash
