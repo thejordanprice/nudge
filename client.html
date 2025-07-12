@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nudge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { inter: ["Inter", "sans-serif"] },
+          colors: {
+            'cordes-blue': '#1e40af',
+            'cordes-dark': '#1e293b',
+            'cordes-light': '#f8fafc',
+            'cordes-accent': '#3b82f6'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { font-family: 'Inter', sans-serif; }
+    html, body { height: 100%; }
+    body { min-height: 100vh; height: 100%; }
+    #chat { min-height: 0; }
+    #chat::-webkit-scrollbar { width: 8px; }
+    #chat::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
+    .fade-in { animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: none; } }
+  </style>
+</head>
+<body class="bg-cordes-light min-h-screen flex">
+  <!-- Mobile Overlay -->
+  <div id="mobileOverlay" class="fixed inset-0 bg-black/50 z-40 lg:hidden hidden"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-cordes-dark shadow-xl z-50 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+    <!-- Logo -->
+    <div class="flex items-center justify-center h-16 bg-cordes-blue">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+          <i class="fas fa-lock text-cordes-blue text-lg"></i>
+        </div>
+        <span class="text-white text-xl font-bold">Nudge</span>
+      </div>
+    </div>
+    <!-- Registration Form -->
+    <form id="registerForm" class="px-4 py-4 flex flex-col gap-3" autocomplete="off">
+      <input type="text" id="username" placeholder="Enter your username" required class="rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cordes-accent transition">
+      <button type="submit" class="bg-cordes-blue text-white rounded-lg py-2 font-semibold hover:bg-cordes-accent transition flex items-center justify-center gap-2">
+        <i class="fas fa-arrow-right"></i>
+        Join
+      </button>
+    </form>
+    <!-- User List -->
+    <div id="mainUI" style="display:none;" class="flex-1 flex flex-col overflow-hidden">
+      <ul id="users" class="flex-1 overflow-y-auto px-2 space-y-1 pb-2 pt-1">
+        <!-- Users rendered here -->
+      </ul>
+    </div>
+    <!-- Your Profile -->
+    <div class="absolute bottom-4 left-4 right-4">
+      <div id="profileCard" class="bg-gray-800 rounded-lg p-4 flex items-center space-x-3 cursor-pointer hover:bg-cordes-blue/30 transition">
+        <div id="myAvatar" class="w-10 h-10 rounded-full bg-cordes-blue text-white flex items-center justify-center font-bold text-lg"></div>
+        <div class="flex-1">
+          <p id="myUserInfo" class="text-white text-sm font-medium">Not logged in</p>
+          <div class="flex items-center gap-2 mt-1">
+            <p class="text-gray-400 text-xs">You</p>
+            <div id="connectionStatus" class="flex items-center gap-1">
+              <div class="w-2 h-2 rounded-full bg-gray-500"></div>
+              <span class="text-gray-400 text-xs">Disconnected</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="flex-1 lg:ml-64 flex flex-col min-h-screen">
+    <!-- Chat Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 px-4 lg:px-8 py-4 flex items-center gap-4 min-h-[72px] relative">
+      <!-- Mobile Menu Button -->
+      <button id="mobileMenuBtn" class="lg:hidden bg-cordes-blue text-white p-3 rounded-lg shadow-lg hover:bg-cordes-accent transition">
+        <i class="fas fa-bars text-lg"></i>
+      </button>
+      <div id="chatHeader" class="flex items-center gap-3 w-full">
+        <!-- Populated dynamically -->
+      </div>
+    </header>
+    <!-- Chat Area -->
+    <main class="flex-1 flex flex-col min-h-0 bg-cordes-light">
+              <div id="chat" class="flex-1 overflow-y-auto px-4 lg:px-8 py-6 flex flex-col gap-3 fade-in"></div>
+          <form id="msgForm" class="flex items-center gap-2 border-t border-gray-200 bg-white px-4 lg:px-8 py-4 sticky bottom-0 z-10" style="margin-top:0;">
+      <input type="text" id="msgInput" placeholder="Type a message..." autocomplete="off" required class="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-cordes-accent transition disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Type a message" disabled>
+      <button type="submit" class="bg-cordes-blue text-white rounded-lg px-5 py-2 font-semibold hover:bg-cordes-accent transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-cordes-blue" aria-label="Send message" disabled>
+        <i class="fas fa-paper-plane"></i>
+        <span class="hidden sm:inline">Send</span>
+      </button>
+    </form>
+    </main>
+  </div>
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed top-0 left-0 right-0 z-[9999] flex flex-col items-end h-[72px] pr-4 pt-4 pointer-events-none"></div>
+
+  <!-- Modal for keys/fingerprint -->
+  <div id="keyModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-all duration-300 ease-out opacity-0 pointer-events-none">
+    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 relative transform scale-95 translate-y-4 transition-all duration-300 ease-out">
+      <button id="closeKeyModal" class="absolute top-3 right-3 text-gray-400 hover:text-cordes-blue text-2xl font-bold transition-colors" aria-label="Close modal">&times;</button>
+      <h2 class="text-xl font-bold mb-2 text-cordes-blue">Your Keys & Fingerprint</h2>
+      <div class="mb-4">
+        <div class="text-xs text-gray-500 mb-1">Public Key (hex)</div>
+        <div id="modalPubKeyHex" class="w-full bg-gray-50 rounded p-2 text-xs font-mono text-gray-700 break-all"></div>
+      </div>
+      <div class="mb-4">
+        <div class="text-xs text-gray-500 mb-1 flex items-center gap-2">Private Key (hex) <span class="text-red-500 font-bold">Do not share!</span></div>
+        <div id="modalPrivKeyHex" class="w-full bg-gray-50 rounded p-2 text-xs font-mono text-gray-700 break-all"></div>
+      </div>
+      <div class="mb-2">
+        <div class="text-xs text-gray-500 mb-1">Fingerprint (SHA-256, short tag)</div>
+        <div id="modalFingerprintHex" class="w-full bg-gray-50 rounded p-2 text-xs font-mono text-gray-700 break-all"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="encryption.js"></script>
+  <script>
+    // --- State ---
+    let ws, myUser, myUsername, myIdB64, selectedUser, session, sessionPartner, sessionInit, sessionSecret;
+    let isEstablishingSession = false; // Track if we're actively establishing a session
+    const users = new Map(); // username -> { id }
+    const offlineUsers = new Set(); // Track offline users with conversation history
+    const chat = document.getElementById('chat');
+    // Auto-scroll chat to bottom when new messages are added
+    // const chatObserver = new MutationObserver(() => {
+    //   chat.scrollTop = chat.scrollHeight;
+    // });
+    // chatObserver.observe(chat, { childList: true });
+    const usersList = document.getElementById('users');
+    const chatHeader = document.getElementById('chatHeader');
+    const myUserInfo = document.getElementById('myUserInfo');
+    const myAvatar = document.getElementById('myAvatar');
+    // Store conversation history per user
+    const conversations = {}; // username -> [{ sender, text, isMe, signatureValid, timestamp }]
+    // Track unread message counts per user
+    const unreadCounts = {};
+
+    // --- UI Handlers ---
+    let pendingUsername = null;
+    let pendingUser = null;
+    let pendingIdB64 = null;
+    // Utility: Filter out private key material from objects before sending to server
+    function filterPrivateFields(obj, allowedFields) {
+      if (!obj || typeof obj !== 'object') return {};
+      const filtered = {};
+      for (const key of allowedFields) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) filtered[key] = obj[key];
+      }
+      return filtered;
+    }
+    document.getElementById('registerForm').onsubmit = async e => {
+      e.preventDefault();
+      pendingUsername = document.getElementById('username').value.trim();
+      if (!pendingUsername) return;
+      pendingUser = await Encryption.createUser();
+      let id = pendingUser.getID();
+      if (!(id instanceof Uint8Array)) id = new Uint8Array(id);
+      pendingIdB64 = CryptoUtils.bytesToBase64(id);
+      const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsPort = location.port ? `:${location.port}` : '';
+      ws = new WebSocket(`${wsProtocol}//${location.hostname}${wsPort}`);
+      ws.onopen = async () => {
+        updateConnectionStatus('connected');
+        ws.send(JSON.stringify({ type: 'register', username: pendingUsername, id: pendingIdB64 }));
+        ws.send(JSON.stringify({ type: 'list_users' }));
+        // Immediately generate and send a pre-key after registration
+        const { card, secret } = await pendingUser.createOPK();
+        const cardToSend = {
+          ...card,
+          user: CryptoUtils.bytesToBase64(card.user),
+          opk: CryptoUtils.bytesToBase64(card.opk),
+          ecdsa: CryptoUtils.bytesToBase64(card.ecdsa)
+        };
+        // Only allow safe fields in secret (adjust as needed for your protocol)
+        const safeSecret = filterPrivateFields(secret, ['id', 'ephemeralPub', 'timestamp']);
+        ws.send(JSON.stringify({ type: 'prekey', card: cardToSend, secret: safeSecret }));
+        sessionInit = { card, secret };
+      };
+      ws.onmessage = handleWSMessage;
+      ws.onclose = () => {
+        updateConnectionStatus('disconnected');
+        showToast('Disconnected from server');
+        resetToDefaultState();
+      };
+      ws.onerror = () => {
+        updateConnectionStatus('disconnected');
+        showToast('Connection error');
+        resetToDefaultState();
+      };
+      document.getElementById('registerForm').style.display = 'none';
+      document.getElementById('mainUI').style.display = '';
+    };
+
+    async function renderUsers() {
+      usersList.innerHTML = '';
+
+      // --- Online Users ---
+      const onlineUsernames = [...users.keys()].filter(u => u !== myUsername);
+      if (onlineUsernames.length > 0) {
+        const onlineHeader = document.createElement('li');
+        onlineHeader.className = 'text-gray-300 text-xs font-semibold px-2 pt-2 pb-1 tracking-wider flex items-center gap-2';
+        onlineHeader.innerHTML = '<i class="fas fa-circle text-green-400 text-xs"></i> ONLINE USERS';
+        usersList.appendChild(onlineHeader);
+      }
+      for (const [username, info] of users.entries()) {
+        if (username === myUsername) continue;
+        usersList.appendChild(renderUserListItem(username, info.id, false));
+      }
+
+      // --- Offline Users (only those with conversation history) ---
+      const offlineToShow = [...offlineUsers].filter(username => !users.has(username) && conversations[username]);
+      if (offlineToShow.length > 0) {
+        const offlineHeader = document.createElement('li');
+        offlineHeader.className = 'text-gray-300 text-xs font-semibold px-2 pt-2 pb-1 tracking-wider flex items-center gap-2';
+        offlineHeader.innerHTML = '<i class="fas fa-circle text-gray-500 text-xs"></i> OFFLINE USERS';
+        usersList.appendChild(offlineHeader);
+        for (const username of offlineToShow) {
+          usersList.appendChild(renderUserListItem(username, null, true));
+        }
+      }
+
+      // --- Empty State ---
+      if (onlineUsernames.length === 0) {
+        const emptyState = document.createElement('li');
+        emptyState.className = 'flex flex-col items-center justify-center py-8 px-4 text-center';
+        
+        // Icon container
+        const iconContainer = document.createElement('div');
+        iconContainer.className = 'w-16 h-16 bg-cordes-blue/10 rounded-full flex items-center justify-center mb-4';
+        iconContainer.innerHTML = '<i class="fas fa-users text-cordes-blue text-2xl"></i>';
+        emptyState.appendChild(iconContainer);
+        
+        // Title
+        const title = document.createElement('h3');
+        title.className = 'text-gray-300 font-semibold text-lg mb-2';
+        title.textContent = 'No one online yet';
+        emptyState.appendChild(title);
+        
+        // Description
+        const description = document.createElement('p');
+        description.className = 'text-gray-400 text-sm leading-relaxed mb-4';
+        description.textContent = 'Share this link with friends to start chatting with end-to-end encryption';
+        emptyState.appendChild(description);
+        
+        // Copy link button
+        const copyButton = document.createElement('button');
+        copyButton.className = 'bg-cordes-blue/20 hover:bg-cordes-blue/30 text-cordes-blue px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2';
+        copyButton.innerHTML = '<i class="fas fa-link"></i> Copy Link';
+        copyButton.onclick = () => {
+          navigator.clipboard.writeText(window.location.href).then(() => {
+            showToast('Link copied to clipboard!');
+          }).catch(() => {
+            showToast('Failed to copy link');
+          });
+        };
+        emptyState.appendChild(copyButton);
+        
+        usersList.appendChild(emptyState);
+      }
+    }
+
+    // Helper to render a user list item (online or offline)
+    function renderUserListItem(username, id, isOffline) {
+      const li = document.createElement('li');
+      li.className = `flex items-center justify-between p-2 my-1 rounded-xl cursor-pointer transition group ${
+        username === sessionPartner
+          ? 'bg-cordes-blue/20 font-bold ring-2 ring-cordes-accent text-white'
+          : isOffline
+            ? 'text-gray-400 bg-gray-800/50 hover:bg-gray-700/50'
+            : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+      }`;
+      // Left: avatar + name
+      const left = document.createElement('div');
+      left.className = 'flex items-center gap-3';
+      // Avatar (first letter)
+      const avatar = document.createElement('div');
+      avatar.className = 'w-9 h-9 rounded-full bg-cordes-blue text-white flex items-center justify-center font-bold text-lg shadow';
+      avatar.textContent = username[0].toUpperCase();
+      left.appendChild(avatar);
+      // Username
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = username;
+      nameSpan.className = 'ml-1';
+      left.appendChild(nameSpan);
+      li.appendChild(left);
+      // Right: unread badge
+      const unread = unreadCounts[username] || 0;
+      if (unread > 0) {
+        const badge = document.createElement('span');
+        badge.className = 'ml-2 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow';
+        badge.textContent = unread > 99 ? '99+' : unread;
+        li.appendChild(badge);
+      }
+      // Allow clicking to view conversation history, but only start session if online
+      li.onclick = () => startSessionWith(username, id);
+      li.tabIndex = 0;
+      li.setAttribute('aria-label', `Chat with ${username}`);
+      li.onkeydown = e => { if (e.key === 'Enter') li.click(); };
+      return li;
+    }
+
+    // Debounce renderChatHeader calls
+    let renderChatHeaderTimeout = null;
+    
+    async function renderChatHeader() {
+      // Clear any pending render
+      if (renderChatHeaderTimeout) {
+        clearTimeout(renderChatHeaderTimeout);
+      }
+      
+      // Debounce the render to prevent multiple rapid calls
+      renderChatHeaderTimeout = setTimeout(async () => {
+        chatHeader.innerHTML = '';
+        if (!sessionPartner) {
+          const placeholder = document.createElement('div');
+          placeholder.className = 'text-gray-400 text-lg font-semibold w-full text-center';
+          placeholder.textContent = 'No conversation selected';
+          chatHeader.appendChild(placeholder);
+          return;
+        }
+      // Avatar
+      const avatar = document.createElement('div');
+      avatar.className = 'w-10 h-10 rounded-full bg-cordes-blue text-white flex items-center justify-center font-bold text-xl shadow';
+      avatar.textContent = sessionPartner[0].toUpperCase();
+      chatHeader.appendChild(avatar);
+      // Name and fingerprint container
+      const nameContainer = document.createElement('div');
+      nameContainer.className = 'flex flex-col';
+      // Name
+      const name = document.createElement('span');
+      name.className = 'text-lg font-bold text-cordes-dark';
+      name.textContent = sessionPartner;
+      nameContainer.appendChild(name);
+      // Fingerprint (only if session is active)
+      let remotePub = null;
+      if (session && session.remote) {
+        remotePub = session.remote;
+        if (!(remotePub instanceof Uint8Array) && remotePub && remotePub.length) remotePub = new Uint8Array(remotePub);
+      }
+      // If not found, try to get from users map (base64 decode)
+      if (!remotePub && users.has(sessionPartner)) {
+        const info = users.get(sessionPartner);
+        if (info && info.id) {
+          try {
+            remotePub = CryptoUtils.base64ToBytes(info.id);
+          } catch (e) { remotePub = null; }
+        }
+      }
+      // Compute fingerprint if possible
+      let fingerprintHex = '(unavailable)', fingerprintShort = '(unavailable)';
+      if (window.crypto && remotePub) {
+        try {
+          const hash = await window.crypto.subtle.digest('SHA-256', remotePub);
+          const hashArr = new Uint8Array(hash);
+          fingerprintHex = bytesToColonHex(hashArr);
+          fingerprintShort = shortKeyTag(hashArr);
+        } catch (e) {}
+      }
+      if (remotePub) {
+        const fp = document.createElement('span');
+        fp.className = 'text-xs text-gray-500 font-mono mt-1';
+        fp.textContent = fingerprintShort;
+        fp.title = 'Public Key Fingerprint';
+        nameContainer.appendChild(fp);
+      }
+      chatHeader.appendChild(nameContainer);
+      // Status and session info column (right side)
+      const rightCol = document.createElement('div');
+      rightCol.className = 'flex flex-col items-end ml-auto';
+      // Status
+      const status = document.createElement('span');
+      if (users.has(sessionPartner)) {
+        status.className = 'text-xs text-green-500 font-semibold';
+        status.textContent = 'Online';
+      } else {
+        status.className = 'text-xs text-gray-400 font-semibold';
+        status.textContent = 'Offline';
+      }
+      rightCol.appendChild(status);
+      // Session info
+      const sess = document.createElement('span');
+      sess.className = 'text-xs text-gray-400';
+      if (session) {
+        sess.textContent = 'Session established';
+      } else if (!users.has(sessionPartner) && conversations[sessionPartner]) {
+        // User is offline but we have conversation history (session was terminated)
+        sess.textContent = 'Session terminated';
+      } else {
+        sess.textContent = 'No session';
+      }
+      rightCol.appendChild(sess);
+      chatHeader.appendChild(rightCol);
+      }, 10); // Small delay to debounce rapid calls
+    }
+
+    async function startSessionWith(username, idB64) {
+      // If clicking the same user, toggle off the chat
+      if (sessionPartner === username) {
+        sessionPartner = null;
+        renderUsers();
+        renderConversation(null);
+        renderChatHeader();
+        updateMessageFormState();
+        return;
+      }
+      
+      sessionPartner = username;
+      // Reset unread count for this user
+      unreadCounts[username] = 0;
+      renderUsers();
+      // Only try to start a session if the user is online (idB64 is present)
+      if (idB64) {
+        // Check if we already have an active session with this user
+        const hasActiveSession = session && sessionPartner === username;
+        if (!hasActiveSession) {
+          isEstablishingSession = true; // Mark that we're establishing a session
+          // 1. Create pre-key and send to server
+          const { card, secret } = await myUser.createOPK();
+          // Base64-encode all binary fields in card
+          const cardToSend = {
+            ...card,
+            user: CryptoUtils.bytesToBase64(card.user),
+            opk: CryptoUtils.bytesToBase64(card.opk),
+            ecdsa: CryptoUtils.bytesToBase64(card.ecdsa)
+          };
+          // Only allow safe fields in secret (adjust as needed for your protocol)
+          const safeSecret = filterPrivateFields(secret, ['id', 'ephemeralPub', 'timestamp']);
+          ws.send(JSON.stringify({ type: 'prekey', card: cardToSend, secret: safeSecret }));
+          // 2. Request partner's pre-key
+          ws.send(JSON.stringify({ type: 'get_prekey', username }));
+          // Wait for prekey response in handleWSMessage
+          sessionInit = { card, secret };
+        }
+      }
+      renderConversation(username);
+      renderChatHeader();
+      updateMessageFormState();
+      
+      // Close mobile menu when a user is selected (on mobile)
+      closeMobileMenuOnUserClick();
+    }
+
+    async function handleWSMessage(ev) {
+      const data = JSON.parse(ev.data);
+      // For message events, increment unread count if not active
+      if (data.type === 'message' && data.from && data.from !== sessionPartner) {
+        unreadCounts[data.from] = (unreadCounts[data.from] || 0) + 1;
+        renderUsers();
+      }
+      switch (data.type) {
+        case 'registered':
+          // Registration succeeded, set global state and update UI
+          myUsername = pendingUsername;
+          myUser = pendingUser;
+          myIdB64 = pendingIdB64;
+          myUserInfo.textContent = myUsername;
+          myAvatar.textContent = myUsername[0] ? myUsername[0].toUpperCase() : '';
+          // Allow mobile menu to be closed now that user is logged in
+          updateSidebarForLoginState();
+          // Start monitoring connection and heartbeat
+          startConnectionMonitoring();
+          startHeartbeat();
+          break;
+        case 'user_list':
+          users.clear();
+          for (const u of data.users) users.set(u.username, { id: u.id });
+          renderUsers();
+          renderChatHeader();
+          break;
+        case 'user_joined':
+          users.set(data.username, { id: data.id });
+          renderUsers();
+          renderChatHeader();
+          updateMessageFormState();
+          break;
+        case 'user_left':
+          users.delete(data.username);
+          // Clear session if the user who left was our current session partner
+          if (data.username === sessionPartner) {
+            session = null;
+            showToast(`${data.username} went offline - session terminated`);
+          } else if (session && conversations[data.username]) {
+            // User went offline but we have conversation history
+            showToast(`${data.username} went offline`);
+          }
+          // If we have a conversation with this user, add to offlineUsers
+          if (conversations[data.username]) {
+            offlineUsers.add(data.username);
+          } else {
+            // Try case-insensitive match
+            const found = Object.keys(conversations).find(
+              k => k.toLowerCase() === data.username.toLowerCase()
+            );
+            if (found) {
+              offlineUsers.add(found);
+            }
+          }
+          renderUsers();
+          renderChatHeader();
+          updateMessageFormState();
+          break;
+        case 'prekey':
+          if (data.username === sessionPartner) {
+            // 3. Establish session as initiator
+            const partnerCard = data.card;
+            // Base64-decode all binary fields in card
+            if (typeof partnerCard.user === 'string') partnerCard.user = CryptoUtils.base64ToBytes(partnerCard.user);
+            if (typeof partnerCard.opk === 'string') partnerCard.opk = CryptoUtils.base64ToBytes(partnerCard.opk);
+            if (typeof partnerCard.ecdsa === 'string') partnerCard.ecdsa = CryptoUtils.base64ToBytes(partnerCard.ecdsa);
+            const mySession = await myUser.createSession(partnerCard);
+            // 4. Send session init to partner (base64-encode all binary fields)
+            const init = mySession.save().init;
+            const initToSend = {
+              ...init,
+              from: CryptoUtils.bytesToBase64(init.from),
+              to: CryptoUtils.bytesToBase64(init.to),
+              epk: CryptoUtils.bytesToBase64(init.epk),
+              ecdsa: CryptoUtils.bytesToBase64(init.ecdsa),
+              opk: CryptoUtils.bytesToBase64(init.opk)
+            };
+            // Only allow safe fields in init (adjust as needed for your protocol)
+            const safeInit = filterPrivateFields(initToSend, ['from', 'to', 'epk', 'ecdsa', 'opk']);
+            ws.send(JSON.stringify({ type: 'signal', to: sessionPartner, from: myUsername, data: safeInit }));
+            session = mySession;
+            // Show toast when session is established (only if we were actively establishing)
+            if (isEstablishingSession) {
+              showToast(`Secure session established with ${sessionPartner}!`);
+              isEstablishingSession = false; // Reset the flag
+            }
+            renderConversation(sessionPartner);
+            renderChatHeader();
+            updateMessageFormState();
+          }
+          break;
+        case 'signal':
+          if (data.from && data.data) {
+            // Show toast when a session is being initiated by another user
+            showToast(`${data.from} is attempting to initiate a secure session.`);
+            // 5. Partner is initiating session, open as responder
+            const partner = data.from;
+            const partnerInfo = users.get(partner);
+            if (!partnerInfo) return;
+            // Get our prekey secret (should have been set)
+            const preKeySecret = sessionInit && sessionInit.secret;
+            if (!preKeySecret) {
+              return;
+            }
+            // Check if we already have an active session with this user
+            const hasActiveSession = session && sessionPartner === partner;
+            if (!hasActiveSession) {
+              isEstablishingSession = true; // Mark that we're establishing a session
+            }
+            // Base64-decode all binary fields in data.data
+            const init = data.data;
+            if (typeof init.from === 'string') init.from = CryptoUtils.base64ToBytes(init.from);
+            if (typeof init.to === 'string') init.to = CryptoUtils.base64ToBytes(init.to);
+            if (typeof init.epk === 'string') init.epk = CryptoUtils.base64ToBytes(init.epk);
+            if (typeof init.ecdsa === 'string') init.ecdsa = CryptoUtils.base64ToBytes(init.ecdsa);
+            if (typeof init.opk === 'string') init.opk = CryptoUtils.base64ToBytes(init.opk);
+            const mySession = await myUser.openSession(init, preKeySecret);
+            session = mySession;
+            // Show toast when session is established (only if we were actively establishing)
+            if (isEstablishingSession) {
+              showToast(`Secure session established with ${partner}!`);
+              isEstablishingSession = false; // Reset the flag
+            }
+            // Do NOT set sessionPartner = partner;
+            // Only update the UI if the user is already viewing this chat
+            if (partner === sessionPartner) {
+              renderConversation(sessionPartner);
+              renderChatHeader();
+              updateMessageFormState();
+            }
+          }
+          break;
+        case 'message':
+          if (data.from && session) {
+            // Decrypt
+            if (data.payload.ciphertext && typeof data.payload.ciphertext === 'string') {
+              data.payload.ciphertext = CryptoUtils.base64ToBytes(data.payload.ciphertext);
+            }
+            const decrypted = await session.read(data.payload);
+            // Store message in the correct conversation
+            if (!conversations[data.from]) conversations[data.from] = [];
+            conversations[data.from].push({ sender: data.from, text: decrypted.plaintext.text, isMe: false, signatureValid: decrypted.signatureValid, timestamp: Date.now() });
+            // If this is the active conversation, render it
+            if (data.from === sessionPartner) {
+              renderConversation(sessionPartner);
+            } else {
+              // Show toast if message is from a user whose chat is not open
+              showToast(`New message from ${data.from}`);
+            }
+          }
+          break;
+        case 'heartbeat_response':
+          // Heartbeat response received - connection is alive
+          break;
+        case 'error':
+          if (data.error === 'Username already taken') {
+            showToast('That username is already taken. Please choose another.');
+            document.getElementById('registerForm').style.display = '';
+            document.getElementById('mainUI').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('username').focus();
+            // Clear pending state so keys and UI are not set
+            pendingUsername = null;
+            pendingUser = null;
+            pendingIdB64 = null;
+          } else {
+            showToast('Error: ' + (data.error || 'Unknown error'));
+          }
+          break;
+        default:
+          // Ignore
+      }
+    }
+
+    document.getElementById('msgForm').onsubmit = async e => {
+      e.preventDefault();
+      const msg = document.getElementById('msgInput').value.trim();
+      if (!msg || !session || !sessionPartner) return;
+      // Encrypt
+      const payload = await session.send({ text: msg, sender: myUsername, timestamp: Date.now() });
+      if (payload.ciphertext && payload.ciphertext instanceof Uint8Array) {
+        payload.ciphertext = CryptoUtils.bytesToBase64(payload.ciphertext);
+      }
+      ws.send(JSON.stringify({ type: 'relay', to: sessionPartner, from: myUsername, payload }));
+      // Store message in the correct conversation
+      if (!conversations[sessionPartner]) conversations[sessionPartner] = [];
+      conversations[sessionPartner].push({ sender: myUsername, text: msg, isMe: true, signatureValid: true, timestamp: Date.now() });
+      renderConversation(sessionPartner);
+      document.getElementById('msgInput').value = '';
+    };
+
+    // Render all messages for a given user
+    async function renderConversation(username) {
+      chat.innerHTML = '';
+      if (!username) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'text-gray-300 text-lg font-semibold w-full text-center mt-20';
+        placeholder.textContent = 'Select a user to start chatting.';
+        chat.appendChild(placeholder);
+        return;
+      }
+      const msgs = conversations[username] || [];
+      for (const msg of msgs) {
+        const div = document.createElement('div');
+        div.className = `flex items-end gap-2 ${msg.isMe ? 'justify-end' : 'justify-start'} fade-in`;
+        // Avatar
+        const avatar = document.createElement('div');
+        avatar.className = `w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg shadow ${msg.isMe ? 'bg-cordes-blue text-white' : 'bg-gray-300 text-gray-700'}`;
+        avatar.textContent = msg.sender[0].toUpperCase();
+        // Message bubble
+        const bubble = document.createElement('div');
+        bubble.className = `max-w-xs px-4 py-2 rounded-2xl shadow text-base relative ${msg.isMe ? 'bg-cordes-blue text-white rounded-br-none' : 'bg-gray-200 text-gray-900 rounded-bl-none'}`;
+        
+        // Add red styling for failed signatures
+        if (!msg.signatureValid) {
+          bubble.classList.add('bg-red-500', 'text-white');
+        }
+        
+        // Create message content container
+        const messageContent = document.createElement('div');
+        messageContent.className = 'mb-2'; // Add bottom margin for timestamp
+        messageContent.textContent = msg.text;
+        bubble.appendChild(messageContent);
+        
+        // Create bottom row for timestamp and lock icon
+        const bottomRow = document.createElement('div');
+        bottomRow.className = 'flex items-center justify-end gap-2 text-xs opacity-70';
+        
+        // Timestamp
+        const time = document.createElement('span');
+        time.className = 'text-gray-400';
+        const d = new Date(msg.timestamp || Date.now());
+        time.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        bottomRow.appendChild(time);
+        
+        // Lock icon
+        const lockIcon = msg.signatureValid ? '<i class="fas fa-lock"></i>' : '<i class="fas fa-unlock"></i>';
+        const lockContainer = document.createElement('span');
+        lockContainer.innerHTML = lockIcon;
+        bottomRow.appendChild(lockContainer);
+        
+        bubble.appendChild(bottomRow);
+        
+        // Generate unique message fingerprint for tooltip
+        let messageFingerprint = 'Unknown';
+        try {
+          // Get message index in conversation
+          const conversation = conversations[username] || [];
+          const messageIndex = conversation.findIndex(m => 
+            m.text === msg.text && 
+            m.timestamp === msg.timestamp && 
+            m.sender === msg.sender
+          );
+          
+          // Create unique hash from message content + timestamp + index
+          const messageData = msg.text + msg.timestamp + (messageIndex >= 0 ? messageIndex : conversation.length);
+          const hash = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(messageData));
+          const hashArr = new Uint8Array(hash);
+          messageFingerprint = Array.from(hashArr.slice(0, 4)).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join('');
+        } catch (e) {
+          messageFingerprint = 'Error';
+        }
+        
+        // Add custom tooltip with encryption details
+        const tooltipText = msg.signatureValid 
+          ? `<i class="fas fa-lock"></i> End-to-end encrypted\nMessage: ${messageFingerprint}\nPerfect Forward Secrecy ✓`
+          : `<i class="fas fa-unlock"></i> Signature verification failed\nMessage: ${messageFingerprint}\nSecurity compromised ✗`;
+        
+        // Add tooltip functionality
+        bubble.addEventListener('mouseenter', (e) => {
+          showCustomTooltip(e, tooltipText);
+        });
+        
+        bubble.addEventListener('mouseleave', () => {
+          hideCustomTooltip();
+        });
+        
+
+        if (msg.isMe) {
+          div.appendChild(bubble);
+          div.appendChild(avatar);
+        } else {
+          div.appendChild(avatar);
+          div.appendChild(bubble);
+        }
+        chat.appendChild(div);
+      }
+      // Scroll to bottom after DOM update (bulletproof: double rAF)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          chat.scrollTop = chat.scrollHeight;
+        });
+      });
+    }
+
+    // Function to update message form state based on user selection
+    function updateMessageFormState() {
+      const msgInput = document.getElementById('msgInput');
+      const sendButton = document.getElementById('msgForm').querySelector('button[type="submit"]');
+      const hasSelectedUser = sessionPartner !== null;
+      const isUserOnline = hasSelectedUser && users.has(sessionPartner);
+      
+      console.log('updateMessageFormState:', { sessionPartner, hasSelectedUser, isUserOnline, users: Array.from(users.keys()) });
+      
+      msgInput.disabled = !hasSelectedUser || !isUserOnline;
+      sendButton.disabled = !hasSelectedUser || !isUserOnline;
+      
+      if (!hasSelectedUser) {
+        msgInput.placeholder = 'Select a user to start chatting...';
+      } else if (!isUserOnline) {
+        msgInput.placeholder = 'User is offline...';
+      } else {
+        msgInput.placeholder = 'Type a message...';
+      }
+    }
+
+    // Mobile menu functionality
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.getElementById('sidebar');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    let isMobileMenuOpen = false;
+
+    function toggleMobileMenu() {
+      // Don't allow closing if no user is logged in
+      if (!myUsername && isMobileMenuOpen) {
+        return;
+      }
+      
+      isMobileMenuOpen = !isMobileMenuOpen;
+      if (isMobileMenuOpen) {
+        sidebar.classList.remove('-translate-x-full');
+        mobileOverlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        mobileOverlay.classList.add('hidden');
+        document.body.style.overflow = ''; // Restore scrolling
+      }
+    }
+
+    function closeMobileMenu() {
+      // Don't allow closing if no user is logged in
+      if (!myUsername) {
+        return;
+      }
+      
+      if (isMobileMenuOpen) {
+        isMobileMenuOpen = false;
+        sidebar.classList.add('-translate-x-full');
+        mobileOverlay.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    }
+
+    // Event listeners for mobile menu
+    mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+    mobileOverlay.addEventListener('click', closeMobileMenu);
+
+    // Connection monitoring
+    let connectionCheckInterval = null;
+    let heartbeatInterval = null;
+    
+    function startConnectionMonitoring() {
+      // Check connection every 30 seconds
+      connectionCheckInterval = setInterval(() => {
+        if (ws && ws.readyState !== WebSocket.OPEN) {
+          showToast('Connection lost - reconnecting...');
+          resetToDefaultState();
+        }
+      }, 30000);
+    }
+    
+    function stopConnectionMonitoring() {
+      if (connectionCheckInterval) {
+        clearInterval(connectionCheckInterval);
+        connectionCheckInterval = null;
+      }
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+    }
+
+    // Heartbeat system
+    function startHeartbeat() {
+      // Send heartbeat every 5 seconds
+      heartbeatInterval = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN && myUsername) {
+          ws.send(JSON.stringify({ type: 'heartbeat', username: myUsername }));
+        }
+      }, 5000);
+    }
+
+    function stopHeartbeat() {
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+    }
+
+    // Close mobile menu when clicking on a user (on mobile)
+    function closeMobileMenuOnUserClick() {
+      if (window.innerWidth < 1024) { // lg breakpoint
+        closeMobileMenu();
+      }
+    }
+
+    // Force sidebar open when no user is logged in
+    function updateSidebarForLoginState() {
+      if (!myUsername) {
+        // Force sidebar open on mobile when not logged in
+        if (window.innerWidth < 1024) {
+          sidebar.classList.remove('-translate-x-full');
+          mobileOverlay.classList.remove('hidden');
+          isMobileMenuOpen = true;
+        }
+      }
+    }
+
+    // Reset application to default state when connection is lost
+    function resetToDefaultState() {
+      // Clear all state
+      myUsername = null;
+      myUser = null;
+      myIdB64 = null;
+      sessionPartner = null;
+      session = null;
+      sessionInit = null;
+      isEstablishingSession = false;
+      
+      // Clear data structures
+      users.clear();
+      offlineUsers.clear();
+      Object.keys(conversations).forEach(key => delete conversations[key]);
+      Object.keys(unreadCounts).forEach(key => delete unreadCounts[key]);
+      
+      // Reset UI to registration state
+      document.getElementById('registerForm').style.display = '';
+      document.getElementById('mainUI').style.display = 'none';
+      document.getElementById('username').value = '';
+      document.getElementById('myUserInfo').textContent = 'Not logged in';
+      document.getElementById('myAvatar').textContent = '';
+      
+      // Clear pending state
+      pendingUsername = null;
+      pendingUser = null;
+      pendingIdB64 = null;
+      
+      // Reset UI components
+      renderUsers();
+      renderConversation(null);
+      renderChatHeader();
+      updateMessageFormState();
+      updateSidebarForLoginState();
+      
+      // Stop connection monitoring and heartbeat
+      stopConnectionMonitoring();
+      stopHeartbeat();
+      
+      // Close WebSocket if it exists
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+      
+      // Update connection status
+      updateConnectionStatus('disconnected');
+    }
+
+    // Initial render
+    renderChatHeader();
+    renderConversation();
+    updateMessageFormState();
+    updateSidebarForLoginState();
+    updateConnectionStatus('disconnected');
+
+    // Custom tooltip functionality
+    let currentTooltip = null;
+    
+    function showCustomTooltip(event, text) {
+      // Remove existing tooltip
+      hideCustomTooltip();
+      
+      // Create tooltip element
+      const tooltip = document.createElement('div');
+      tooltip.className = 'fixed z-[9999] bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-pre-line max-w-xs';
+      tooltip.innerHTML = text;
+      
+      // Position tooltip above the message bubble
+      const rect = event.target.getBoundingClientRect();
+      const tooltipWidth = 200; // Approximate tooltip width
+      const tooltipHeight = 80; // Approximate tooltip height
+      
+      // Center horizontally, position above
+      let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+      let top = rect.top - tooltipHeight - 10;
+      
+      // Ensure tooltip stays within viewport
+      if (left < 10) left = 10;
+      if (left + tooltipWidth > window.innerWidth - 10) left = window.innerWidth - tooltipWidth - 10;
+      if (top < 10) top = rect.bottom + 10; // Show below if not enough space above
+      
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+      
+      // Add to body
+      document.body.appendChild(tooltip);
+      currentTooltip = tooltip;
+    }
+    
+    function hideCustomTooltip() {
+      if (currentTooltip) {
+        document.body.removeChild(currentTooltip);
+        currentTooltip = null;
+      }
+    }
+    
+    // Update connection status in profile card
+    function updateConnectionStatus(status) {
+      const statusContainer = document.getElementById('connectionStatus');
+      if (!statusContainer) return;
+      
+      const indicator = statusContainer.querySelector('div');
+      const text = statusContainer.querySelector('span');
+      
+      switch (status) {
+        case 'connected':
+          indicator.className = 'w-2 h-2 rounded-full bg-green-400 animate-pulse';
+          text.textContent = 'Connected';
+          text.className = 'text-green-400 text-xs';
+          break;
+        case 'connecting':
+          indicator.className = 'w-2 h-2 rounded-full bg-yellow-400 animate-pulse';
+          text.textContent = 'Connecting...';
+          text.className = 'text-yellow-400 text-xs';
+          break;
+        case 'disconnected':
+        default:
+          indicator.className = 'w-2 h-2 rounded-full bg-gray-500';
+          text.textContent = 'Disconnected';
+          text.className = 'text-gray-400 text-xs';
+          break;
+      }
+    }
+
+    // Toast notification
+    function showToast(message) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'bg-cordes-blue text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 animate-fade-in-up pointer-events-auto mb-2';
+      toast.style.opacity = '0.95';
+      toast.innerHTML = `<i class='fas fa-bolt text-yellow-300'></i> <span class="font-medium">${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => container.removeChild(toast), 400);
+      }, 3000);
+    }
+    // Fade-in animation
+    const style = document.createElement('style');
+    style.innerHTML = `@keyframes fade-in-up { from { opacity:0; transform:translateY(20px);} to { opacity:1; transform:none; } } .animate-fade-in-up { animation: fade-in-up 0.3s; } .opacity-0 { opacity:0 !important; transition: opacity 0.4s; }`;
+    document.head.appendChild(style);
+
+    // Helper: Uint8Array to hex string
+    function bytesToHex(bytes) {
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    // Helper: Uint8Array to colon-separated hex
+    function bytesToColonHex(bytes) {
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(':');
+    }
+
+    // Helper: Short key tag (first 8 bytes of hash, uppercase, no colons)
+    function shortKeyTag(bytes) {
+      return Array.from(bytes.slice(0, 8)).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join('');
+    }
+
+    // Helper: Shorten colon-hex fingerprint (first 4 and last 4 bytes)
+    function shortFingerprint(colonHex) {
+      const parts = colonHex.split(':');
+      if (parts.length <= 8) return colonHex;
+      return parts.slice(0,4).join(':') + ':...:' + parts.slice(-4).join(':');
+    }
+
+    // Modal logic
+    const keyModal = document.getElementById('keyModal');
+    const closeKeyModal = document.getElementById('closeKeyModal');
+    const modalContent = keyModal.querySelector('div');
+    
+    function showKeyModal() {
+      // Enable pointer events and show modal
+      keyModal.classList.remove('pointer-events-none');
+      keyModal.classList.remove('opacity-0');
+      modalContent.classList.remove('scale-95', 'translate-y-4');
+      modalContent.classList.add('scale-100', 'translate-y-0');
+    }
+    
+    function hideKeyModal() {
+      // Hide modal with animation
+      keyModal.classList.add('opacity-0', 'pointer-events-none');
+      modalContent.classList.remove('scale-100', 'translate-y-0');
+      modalContent.classList.add('scale-95', 'translate-y-4');
+    }
+    
+    document.getElementById('profileCard').onclick = async () => {
+      if (!myUser) return;
+      let pubKey, privKey, pubHex = '(unavailable)', privHex = '(unavailable)', fingerprintHex = '(unavailable)', fingerprintShort = '(unavailable)';
+      try {
+        // Use userState.pub and userState.key for keys
+        if (myUser.userState && myUser.userState.pub) pubKey = myUser.userState.pub;
+        if (myUser.userState && myUser.userState.key) privKey = myUser.userState.key;
+
+        // Try direct Uint8Array/ArrayBuffer
+        if (pubKey) {
+          const pubArr = new Uint8Array(pubKey);
+          pubHex = bytesToHex(pubArr);
+        }
+        if (privKey) {
+          const privArr = new Uint8Array(privKey);
+          privHex = bytesToHex(privArr);
+        }
+
+        // Compute fingerprint (SHA-256 of public key, base64)
+        if (window.crypto && pubKey) {
+          try {
+            const hash = await window.crypto.subtle.digest('SHA-256', pubKey);
+            const hashArr = new Uint8Array(hash);
+            fingerprintHex = bytesToColonHex(hashArr);
+            fingerprintShort = shortKeyTag(hashArr);
+          } catch (e) { fingerprintHex = '(error computing fingerprint)'; fingerprintShort = '(error)'; }
+        }
+      } catch (e) {
+        console.error('[DEBUG] Error extracting keys:', e);
+      }
+      document.getElementById('modalPubKeyHex').textContent = pubHex;
+      document.getElementById('modalPrivKeyHex').textContent = privHex;
+      const modalFingerprintHexDiv = document.getElementById('modalFingerprintHex');
+      modalFingerprintHexDiv.textContent = fingerprintShort;
+      showKeyModal();
+    };
+    
+    closeKeyModal.onclick = hideKeyModal;
+    keyModal.onclick = e => { 
+      if (e.target === keyModal) hideKeyModal(); 
+    };
+  </script>
+</body>
+</html> 

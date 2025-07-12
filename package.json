@@ -1,0 +1,67 @@
+{
+  "name": "secure-encryption",
+  "version": "2.0.0",
+  "description": "A professional JavaScript encryption library with ECDH key exchange, double ratchet algorithm, and envelope encryption",
+  "main": "secure-encryption.js",
+  "scripts": {
+    "test": "node test.js",
+    "test:browser": "node serve-test.js",
+    "lint": "eslint secure-encryption.js",
+    "docs": "jsdoc secure-encryption.js -d docs",
+    "build": "echo 'No build step required - pure JavaScript library'",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [
+    "encryption",
+    "cryptography",
+    "ecdh",
+    "double-ratchet",
+    "signal-protocol",
+    "end-to-end-encryption",
+    "forward-secrecy",
+    "secure-messaging",
+    "web-crypto",
+    "aes-gcm",
+    "hkdf"
+  ],
+  "author": {
+    "name": "Secure Encryption Library",
+    "email": "security@example.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example/secure-encryption.git"
+  },
+  "bugs": {
+    "url": "https://github.com/example/secure-encryption/issues"
+  },
+  "homepage": "https://github.com/example/secure-encryption#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "Chrome >= 60",
+    "Firefox >= 55",
+    "Safari >= 11",
+    "Edge >= 79"
+  ],
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "jsdoc": "^4.0.0"
+  },
+  "files": [
+    "secure-encryption.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "directories": {
+    "example": "examples"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "ws": "^8.13.0"
+  }
+} 
