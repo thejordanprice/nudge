@@ -4,7 +4,7 @@
  */
 
 // Import the library (adjust path as needed)
-const Encryption = require('./encryption.js');
+const Encryption = require('../encryption.js');
 
 async function runTests() {
   console.log('🧪 Testing Nudge\n');
@@ -37,8 +37,10 @@ async function runTests() {
       timestamp: Date.now()
     };
     
-    const envelope = await alice.sealEnvelope(bob.getID(), message);
-    const opened = await bob.openEnvelope(envelope);
+    // FIX: Use a valid card for Bob
+    const { card: bobCard, secret: bobSecret } = await bob.createOPK();
+    const envelope = await alice.sealEnvelope(bobCard, message);
+    const opened = await bob.openEnvelope(envelope, bobSecret);
     
     // --- Signature verification for envelope (if supported) ---
     if (opened && opened.plaintext && opened.plaintext.signature) {

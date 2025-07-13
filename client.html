@@ -522,75 +522,98 @@
           break;
         case 'prekey':
           if (data.username === sessionPartner) {
-            // 3. Establish session as initiator
-            const partnerCard = data.card;
-            // Base64-decode all binary fields in card
-            if (typeof partnerCard.user === 'string') partnerCard.user = CryptoUtils.base64ToBytes(partnerCard.user);
-            if (typeof partnerCard.opk === 'string') partnerCard.opk = CryptoUtils.base64ToBytes(partnerCard.opk);
-            if (typeof partnerCard.ecdsa === 'string') partnerCard.ecdsa = CryptoUtils.base64ToBytes(partnerCard.ecdsa);
-            const mySession = await myUser.createSession(partnerCard);
-            // 4. Send session init to partner (base64-encode all binary fields)
-            const init = mySession.save().init;
-            const initToSend = {
-              ...init,
-              from: CryptoUtils.bytesToBase64(init.from),
-              to: CryptoUtils.bytesToBase64(init.to),
-              epk: CryptoUtils.bytesToBase64(init.epk),
-              ecdsa: CryptoUtils.bytesToBase64(init.ecdsa),
-              opk: CryptoUtils.bytesToBase64(init.opk)
-            };
-            // Only allow safe fields in init (adjust as needed for your protocol)
-            const safeInit = filterPrivateFields(initToSend, ['from', 'to', 'epk', 'ecdsa', 'opk']);
-            ws.send(JSON.stringify({ type: 'signal', to: sessionPartner, from: myUsername, data: safeInit }));
-            session = mySession;
-            // Show toast when session is established (only if we were actively establishing)
-            if (isEstablishingSession) {
-              showToast(`Secure session established with ${sessionPartner}!`);
-              isEstablishingSession = false; // Reset the flag
+            try {
+              // 3. Establish session as initiator
+              const partnerCard = data.card;
+              // Base64-decode all binary fields in card
+              if (typeof partnerCard.user === 'string') partnerCard.user = CryptoUtils.base64ToBytes(partnerCard.user);
+              if (typeof partnerCard.opk === 'string') partnerCard.opk = CryptoUtils.base64ToBytes(partnerCard.opk);
+              if (typeof partnerCard.ecdsa === 'string') partnerCard.ecdsa = CryptoUtils.base64ToBytes(partnerCard.ecdsa);
+              
+
+              const mySession = await myUser.createSession(partnerCard);
+              
+
+              
+              // 4. Send session init to partner (base64-encode all binary fields)
+              const init = mySession.save().init;
+              const initToSend = {
+                ...init,
+                from: CryptoUtils.bytesToBase64(init.from),
+                to: CryptoUtils.bytesToBase64(init.to),
+                epk: CryptoUtils.bytesToBase64(init.epk),
+                ecdsa: CryptoUtils.bytesToBase64(init.ecdsa),
+                opk: CryptoUtils.bytesToBase64(init.opk)
+              };
+              // Only allow safe fields in init (adjust as needed for your protocol)
+              const safeInit = filterPrivateFields(initToSend, ['from', 'to', 'epk', 'ecdsa', 'opk']);
+              ws.send(JSON.stringify({ type: 'signal', to: sessionPartner, from: myUsername, data: safeInit }));
+              session = mySession;
+              
+              // Show toast when session is established (only if we were actively establishing)
+              if (isEstablishingSession) {
+                showToast(`Secure session established with ${sessionPartner}!`);
+                isEstablishingSession = false; // Reset the flag
+              }
+              renderConversation(sessionPartner);
+              renderChatHeader();
+              updateMessageFormState();
+            } catch (error) {
+              console.error('Error creating session as initiator:', error);
+              showToast('Failed to establish session. Please try again.');
             }
-            renderConversation(sessionPartner);
-            renderChatHeader();
-            updateMessageFormState();
           }
           break;
         case 'signal':
           if (data.from && data.data) {
-            // Show toast when a session is being initiated by another user
-            showToast(`${data.from} is attempting to initiate a secure session.`);
-            // 5. Partner is initiating session, open as responder
-            const partner = data.from;
-            const partnerInfo = users.get(partner);
-            if (!partnerInfo) return;
-            // Get our prekey secret (should have been set)
-            const preKeySecret = sessionInit && sessionInit.secret;
-            if (!preKeySecret) {
-              return;
-            }
-            // Check if we already have an active session with this user
-            const hasActiveSession = session && sessionPartner === partner;
-            if (!hasActiveSession) {
-              isEstablishingSession = true; // Mark that we're establishing a session
-            }
-            // Base64-decode all binary fields in data.data
-            const init = data.data;
-            if (typeof init.from === 'string') init.from = CryptoUtils.base64ToBytes(init.from);
-            if (typeof init.to === 'string') init.to = CryptoUtils.base64ToBytes(init.to);
-            if (typeof init.epk === 'string') init.epk = CryptoUtils.base64ToBytes(init.epk);
-            if (typeof init.ecdsa === 'string') init.ecdsa = CryptoUtils.base64ToBytes(init.ecdsa);
-            if (typeof init.opk === 'string') init.opk = CryptoUtils.base64ToBytes(init.opk);
-            const mySession = await myUser.openSession(init, preKeySecret);
-            session = mySession;
-            // Show toast when session is established (only if we were actively establishing)
-            if (isEstablishingSession) {
-              showToast(`Secure session established with ${partner}!`);
-              isEstablishingSession = false; // Reset the flag
-            }
-            // Do NOT set sessionPartner = partner;
-            // Only update the UI if the user is already viewing this chat
-            if (partner === sessionPartner) {
-              renderConversation(sessionPartner);
-              renderChatHeader();
-              updateMessageFormState();
+            try {
+              // Show toast when a session is being initiated by another user
+              showToast(`${data.from} is attempting to initiate a secure session.`);
+              // 5. Partner is initiating session, open as responder
+              const partner = data.from;
+              const partnerInfo = users.get(partner);
+              if (!partnerInfo) return;
+              // Get our prekey secret (should have been set)
+              const preKeySecret = sessionInit && sessionInit.secret;
+              if (!preKeySecret) {
+                console.error('No preKeySecret available for responder session');
+                return;
+              }
+              // Check if we already have an active session with this user
+              const hasActiveSession = session && sessionPartner === partner;
+              if (!hasActiveSession) {
+                isEstablishingSession = true; // Mark that we're establishing a session
+              }
+              // Base64-decode all binary fields in data.data
+              const init = data.data;
+              if (typeof init.from === 'string') init.from = CryptoUtils.base64ToBytes(init.from);
+              if (typeof init.to === 'string') init.to = CryptoUtils.base64ToBytes(init.to);
+              if (typeof init.epk === 'string') init.epk = CryptoUtils.base64ToBytes(init.epk);
+              if (typeof init.ecdsa === 'string') init.ecdsa = CryptoUtils.base64ToBytes(init.ecdsa);
+              if (typeof init.opk === 'string') init.opk = CryptoUtils.base64ToBytes(init.opk);
+              
+
+              
+                            const mySession = await myUser.openSession(init, preKeySecret);
+              session = mySession;
+              
+
+              
+              // Show toast when session is established (only if we were actively establishing)
+              if (isEstablishingSession) {
+                showToast(`Secure session established with ${partner}!`);
+                isEstablishingSession = false; // Reset the flag
+              }
+              // Do NOT set sessionPartner = partner;
+              // Only update the UI if the user is already viewing this chat
+              if (partner === sessionPartner) {
+                renderConversation(sessionPartner);
+                renderChatHeader();
+                updateMessageFormState();
+              }
+            } catch (error) {
+              console.error('Error opening session as responder:', error);
+              showToast('Failed to establish session. Please try again.');
             }
           }
           break;
@@ -639,18 +662,32 @@
     document.getElementById('msgForm').onsubmit = async e => {
       e.preventDefault();
       const msg = document.getElementById('msgInput').value.trim();
-      if (!msg || !session || !sessionPartner) return;
-      // Encrypt
-      const payload = await session.send({ text: msg, sender: myUsername, timestamp: Date.now() });
-      if (payload.ciphertext && payload.ciphertext instanceof Uint8Array) {
-        payload.ciphertext = CryptoUtils.bytesToBase64(payload.ciphertext);
+      if (!msg || !session || !sessionPartner || !session.sessionState || !session.sessionState.state) return;
+      
+      // Check if we can send (need CKs for sending, except for responder's first message)
+      if (!session.sessionState.state.CKs && session.sessionState.state.CKr) {
+        // This is the responder's first message - it will establish the sending chain
+      } else if (!session.sessionState.state.CKs) {
+        showToast('Session not ready for sending yet. Please wait...');
+        return;
       }
-      ws.send(JSON.stringify({ type: 'relay', to: sessionPartner, from: myUsername, payload }));
-      // Store message in the correct conversation
-      if (!conversations[sessionPartner]) conversations[sessionPartner] = [];
-      conversations[sessionPartner].push({ sender: myUsername, text: msg, isMe: true, signatureValid: true, timestamp: Date.now() });
-      renderConversation(sessionPartner);
-      document.getElementById('msgInput').value = '';
+      
+      try {
+        // Encrypt
+        const payload = await session.send({ text: msg, sender: myUsername, timestamp: Date.now() });
+        if (payload.ciphertext && payload.ciphertext instanceof Uint8Array) {
+          payload.ciphertext = CryptoUtils.bytesToBase64(payload.ciphertext);
+        }
+        ws.send(JSON.stringify({ type: 'relay', to: sessionPartner, from: myUsername, payload }));
+        // Store message in the correct conversation
+        if (!conversations[sessionPartner]) conversations[sessionPartner] = [];
+        conversations[sessionPartner].push({ sender: myUsername, text: msg, isMe: true, signatureValid: true, timestamp: Date.now() });
+        renderConversation(sessionPartner);
+        document.getElementById('msgInput').value = '';
+      } catch (error) {
+        console.error('Failed to send message:', error);
+        showToast('Failed to send message. Please try again.');
+      }
     };
 
     // Render all messages for a given user
@@ -763,16 +800,25 @@
       const sendButton = document.getElementById('msgForm').querySelector('button[type="submit"]');
       const hasSelectedUser = sessionPartner !== null;
       const isUserOnline = hasSelectedUser && users.has(sessionPartner);
+      // Session is ready if we have a session with either sending chain (CKs) or receiving chain (CKr)
+      const sessionReady = !!(session && session.sessionState && session.sessionState.state && (session.sessionState.state.CKs || session.sessionState.state.CKr));
+      // Can send if we have a sending chain (CKs) or if we're a responder with receiving chain (CKr) ready to establish sending chain
+      const canSend = !!(session && session.sessionState && session.sessionState.state && 
+        (session.sessionState.state.CKs || session.sessionState.state.CKr));
       
-      console.log('updateMessageFormState:', { sessionPartner, hasSelectedUser, isUserOnline, users: Array.from(users.keys()) });
+
       
-      msgInput.disabled = !hasSelectedUser || !isUserOnline;
-      sendButton.disabled = !hasSelectedUser || !isUserOnline;
+      msgInput.disabled = !hasSelectedUser || !isUserOnline || !sessionReady;
+      sendButton.disabled = !hasSelectedUser || !isUserOnline || !canSend;
       
       if (!hasSelectedUser) {
         msgInput.placeholder = 'Select a user to start chatting...';
       } else if (!isUserOnline) {
         msgInput.placeholder = 'User is offline...';
+      } else if (!sessionReady) {
+        msgInput.placeholder = 'Establishing secure session...';
+      } else if (!canSend) {
+        msgInput.placeholder = 'Session established - waiting to send...';
       } else {
         msgInput.placeholder = 'Type a message...';
       }

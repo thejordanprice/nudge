@@ -1,19 +1,45 @@
-# Nudge
+# Nudge - Secure End-to-End Encryption Library
 
-A professional, modern JavaScript encryption library that provides end-to-end encryption with forward secrecy, perfect forward secrecy, and secure messaging capabilities. Built with native Web Crypto API and ES6+ features.
+A comprehensive JavaScript library for secure end-to-end encryption with forward secrecy, perfect forward secrecy, and digital signatures. Built with modern cryptographic standards and designed for both browser and Node.js environments.
 
 ## Features
 
-- **ECDH Key Exchange**: Elliptic Curve Diffie-Hellman key exchange using P-256 curve
-- **Double Ratchet Algorithm**: Implements the Signal Protocol's double ratchet for forward secrecy
-- **Envelope Encryption**: Secure envelope encryption for message delivery
-- **Session Management**: Persistent session state with automatic key rotation
-- **Long Message Chain Support**: Robust handling of extended conversations with 50+ messages
-- **Zero Dependencies**: Uses only native Web Crypto API
-- **Cross-Platform**: Works in browsers and Node.js environments
-- **TypeScript Ready**: Full JSDoc documentation for TypeScript support
-- **Comprehensive Testing**: Extensive test suite with browser and Node.js support
-- **Digital Signatures**: All session messages are digitally signed and verified using ECDSA (P-256)
+- **ECDH Key Exchange**: Secure key agreement using P-256 elliptic curve
+- **Double Ratchet Algorithm**: Forward secrecy with automatic key rotation
+- **Envelope Encryption**: Secure messaging with sender anonymity
+- **Digital Signatures**: ECDSA signatures for message authenticity
+- **Session Management**: Persistent session state with secure serialization
+- **Rate Limiting**: Built-in protection against abuse
+- **Input Validation**: Comprehensive security checks
+- **Constant-Time Operations**: Protection against timing attacks
+
+## Security Features
+
+### Forward Secrecy
+The library implements the double ratchet algorithm, which provides forward secrecy by regularly rotating encryption keys. Even if a key is compromised, past messages remain secure.
+
+### Perfect Forward Secrecy
+Each message uses a unique key derived from the ratchet state, ensuring that compromising one message doesn't affect others.
+
+### Envelope Encryption
+Messages can be sealed in encrypted envelopes that hide the sender's identity until the envelope is opened by the intended recipient.
+
+### Key Derivation
+All keys are derived using HKDF (HMAC-based Key Derivation Function) with proper salting and context separation.
+
+### Long Message Chain Support
+The library has been extensively tested with long message chains (50+ messages) and alternating conversation patterns, ensuring robust performance for extended conversations.
+
+### Digital Signatures
+All session messages are digitally signed using ECDSA (P-256). The sender signs the plaintext before encryption, and the receiver verifies the signature after decryption. This ensures message authenticity and integrity in addition to confidentiality. Signature verification status is available in the result of `session.read()`.
+
+### Security Hardening (v2.1.0)
+- **No Cryptographic Material Logging**: Removed all debug logging of sensitive cryptographic data
+- **Input Validation**: Comprehensive validation for all cryptographic operations
+- **Constant-Time Comparisons**: Protection against timing attacks
+- **Rate Limiting**: Built-in protection against abuse and DoS attacks
+- **Configurable Security Parameters**: Adjustable limits and timeouts
+- **Secure Error Handling**: No information leakage through error messages
 
 ## Installation
 
@@ -24,196 +50,114 @@ A professional, modern JavaScript encryption library that provides end-to-end en
 
 ### Node.js
 ```bash
-npm install nudge
-```
-
-```javascript
-const Encryption = require('./encryption.js');
+npm install nudge-encryption
 ```
 
 ## Quick Start
 
 ### Creating Users
-
 ```javascript
-// Create a new user
-const alice = await Encryption.createUser();
-const bob = await Encryption.createUser();
+// Create a new user with both ECDH and ECDSA keys
+const user = await Encryption.createUser();
 
 // Save user data for later use
-const aliceData = alice.save();
-const bobData = bob.save();
-
-// Load user from saved data
-const aliceLoaded = await Encryption.loadUser(aliceData);
+const userData = user.save();
 ```
 
 ### Establishing Sessions
-
 ```javascript
-// Bob creates a one-time pre-key for Alice
-const { card, secret } = await bob.createOPK();
+// User A creates a pre-key card
+const { card, secret } = await userA.createOPK();
 
-// Alice creates a session using Bob's pre-key
-const aliceSession = await alice.createSession(card);
+// User B creates a session using the card
+const session = await userB.createSession(card);
 
-// Bob opens the session using his secret
-const bobSession = await bob.openSession(aliceSession.save().init, secret);
+// User A opens the session using the secret
+const sessionA = await userA.openSession(session.init, secret);
 ```
 
-### Sending Encrypted Messages
-
+### Sending Messages
 ```javascript
-// Alice sends a message to Bob
-const message = { text: "Hello Bob!", timestamp: Date.now() };
-const encryptedPayload = await aliceSession.send(message);
-
-// Bob receives and decrypts the message
-const decryptedMessage = await bobSession.read(encryptedPayload);
-console.log(decryptedMessage.plaintext); // { text: "Hello Bob!", timestamp: ... }
-// Check digital signature status
-if (decryptedMessage.signatureValid) {
-  console.log("Signature verified!");
-} else {
-  console.error("Signature verification failed:", decryptedMessage.signatureError);
-}
-```
-
-### Envelope Encryption
-
-```javascript
-// Alice seals a message for Bob
-const envelope = await alice.sealEnvelope(bob.getID(), {
-  type: "direct_message",
-  content: "This is a secure message"
+// Send an encrypted message
+const payload = await session.send({
+  text: "Hello, world!",
+  timestamp: Date.now()
 });
 
-// Bob opens the envelope
-const opened = await bob.openEnvelope(envelope);
-console.log(opened.plaintext); // { type: "direct_message", content: "This is a secure message" }
+// The payload includes:
+// - header: Ratchet state information
+// - ciphertext: Encrypted message
+// - signature: Digital signature
 ```
 
-## Testing
-
-The library includes comprehensive testing for both Node.js and browser environments.
-
-### Node.js Testing
-```bash
-npm test
-```
-
-### Browser Testing
-```bash
-npm run test:browser
-```
-
-Or open `test/test.html` in a modern browser to run the complete test suite.
-
-### Test Coverage
-- ✅ User creation and persistence
-- ✅ Envelope encryption/decryption
-- ✅ Session establishment and communication
-- ✅ Session persistence and restoration
-- ✅ Multiple message handling
-- ✅ Long message chain testing (50+ messages)
-- ✅ Alternating conversation patterns
-- ✅ Deep clone utility functions
-
-## Examples
-
-### Complete Chat Application
-
-See `example/example.js` for a full-featured secure chat application demonstrating:
-
-- User registration and management
-- Pre-key creation and session establishment
-- Secure message sending and receiving
-- Session persistence and restoration
-- Multi-user chat functionality
-- Long message chain testing (25+ messages in each direction)
-
+### Receiving Messages
 ```javascript
-// Run the complete example
-node example/example.js
-```
+// Receive and decrypt a message
+const message = await session.read(payload);
 
-### Basic Usage Example
-
-```javascript
-// Initialize users
-const alice = await Encryption.createUser();
-const bob = await Encryption.createUser();
-
-// Establish session
-const { card, secret } = await bob.createOPK();
-const aliceSession = await alice.createSession(card);
-const bobSession = await bob.openSession(aliceSession.save().init, secret);
-
-// Send messages
-const message1 = await bobSession.send({ text: "Hello Alice!" });
-const message2 = await aliceSession.send({ text: "Hi Bob!" });
-
-// Receive messages
-const received1 = await aliceSession.read(message1);
-const received2 = await bobSession.read(message2);
-
-console.log(received1.plaintext.text); // "Hello Alice!"
-console.log(received2.plaintext.text); // "Hi Bob!"
-```
-
-### Secure File Sharing
-
-```javascript
-const sender = await Encryption.createUser();
-const recipient = await Encryption.createUser();
-
-// Encrypt file data
-const fileData = { name: "secret.txt", content: "sensitive data" };
-const envelope = await sender.sealEnvelope(recipient.getID(), fileData);
-
-// Decrypt file data
-const decrypted = await recipient.openEnvelope(envelope);
-console.log(decrypted.plaintext.name); // "secret.txt"
+// message contains:
+// - plaintext: The decrypted message object
+// - signatureValid: Boolean indicating signature validity
+// - signatureError: Error message if signature verification failed
 ```
 
 ## API Reference
 
 ### Encryption
 
-Main library class with static methods for user management.
+Main library interface.
 
 #### `Encryption.createUser()`
-Creates a new user with a fresh ECDH key pair.
+Creates a new user with ECDH and ECDSA key pairs.
 
 **Returns:** `Promise<User>` - New user instance
 
 #### `Encryption.loadUser(userData)`
-Loads a user from saved user data.
+Loads a user from saved data.
 
 **Parameters:**
 - `userData` (Object): Saved user data from `user.save()`
 
-**Returns:** `Promise<User>` - User instance
+**Returns:** `Promise<User>` - Loaded user instance
 
 #### `Encryption.cloneState(src)`
-Deep clones an object, useful for state management.
+Creates a deep clone of session state.
 
 **Parameters:**
-- `src` (*): Object to clone
+- `src` (Object): Source state to clone
 
-**Returns:** * - Cloned object
+**Returns:** `Object` - Cloned state
+
+#### `Encryption.sign(privateKey, message)`
+Signs a message with an ECDSA private key.
+
+**Parameters:**
+- `privateKey` (CryptoKey|Uint8Array): ECDSA private key
+- `message` (string): Message to sign
+
+**Returns:** `Promise<Uint8Array>` - Digital signature
+
+#### `Encryption.verify(publicKey, message, signature)`
+Verifies an ECDSA signature.
+
+**Parameters:**
+- `publicKey` (CryptoKey|Uint8Array): ECDSA public key
+- `message` (string): Original message
+- `signature` (Uint8Array): Digital signature
+
+**Returns:** `Promise<boolean>` - True if signature is valid
 
 ### User
 
-Represents a user identity with cryptographic operations.
+Represents a user identity with cryptographic keys.
 
 #### `user.createOPK()`
 Creates a one-time pre-key for session establishment.
 
-**Returns:** `Promise<Object>` - `{ card, secret }` where `card` is the public pre-key and `secret` is the private key
+**Returns:** `Promise<Object>` - Pre-key card and secret
 
 #### `user.sealEnvelope(to, message)`
-Seals a message in an encrypted envelope for a recipient.
+Seals a message in an encrypted envelope.
 
 **Parameters:**
 - `to` (Uint8Array): Recipient's public key
@@ -296,26 +240,6 @@ Gets the recipient's public key for this session.
 Saves the session's current state.
 
 **Returns:** `Object` - Session data for persistence
-
-## Security Features
-
-### Forward Secrecy
-The library implements the double ratchet algorithm, which provides forward secrecy by regularly rotating encryption keys. Even if a key is compromised, past messages remain secure.
-
-### Perfect Forward Secrecy
-Each message uses a unique key derived from the ratchet state, ensuring that compromising one message doesn't affect others.
-
-### Envelope Encryption
-Messages can be sealed in encrypted envelopes that hide the sender's identity until the envelope is opened by the intended recipient.
-
-### Key Derivation
-All keys are derived using HKDF (HMAC-based Key Derivation Function) with proper salting and context separation.
-
-### Long Message Chain Support
-The library has been extensively tested with long message chains (50+ messages) and alternating conversation patterns, ensuring robust performance for extended conversations.
-
-### Digital Signatures
-All session messages are digitally signed using ECDSA (P-256). The sender signs the plaintext before encryption, and the receiver verifies the signature after decryption. This ensures message authenticity and integrity in addition to confidentiality. Signature verification status is available in the result of `session.read()`.
 
 ## Architecture
 
@@ -404,15 +328,56 @@ MIT License - see LICENSE file for details.
 
 ## Security Considerations
 
-- Always use HTTPS in production
-- Store private keys securely
-- Regularly rotate pre-keys
-- Validate all inputs
-- Use secure random number generation (handled automatically)
-- Implement proper key backup and recovery procedures
-- Test thoroughly with long message chains for production use
+### Production Security Checklist
+- [ ] Always use HTTPS in production
+- [ ] Store private keys securely (hardware security modules recommended)
+- [ ] Regularly rotate pre-keys
+- [ ] Validate all inputs on both client and server
+- [ ] Use secure random number generation (handled automatically)
+- [ ] Implement proper key backup and recovery procedures
+- [ ] Test thoroughly with long message chains for production use
+- [ ] Monitor for rate limit violations
+- [ ] Implement secure logging (no cryptographic material)
+- [ ] Use constant-time operations for all comparisons
+
+### Security Features Implemented
+- **No Cryptographic Material Logging**: All debug logging of sensitive data has been removed
+- **Input Validation**: Comprehensive validation for all cryptographic operations
+- **Constant-Time Comparisons**: Protection against timing attacks
+- **Rate Limiting**: Built-in protection against abuse (100 requests per minute per user)
+- **Configurable Security Parameters**: Adjustable limits and timeouts
+- **Secure Error Handling**: No information leakage through error messages
+- **Message Size Limits**: Maximum message size of 1MB to prevent DoS
+- **Key Length Validation**: Strict validation of cryptographic key lengths
+- **Base64 Validation**: Proper validation of base64 encoded data
+
+### Security Configuration
+The library includes configurable security parameters:
+
+```javascript
+const SECURITY_CONFIG = {
+  MAX_SKIP_MESSAGES: 10,        // Maximum messages to skip in ratchet
+  KEY_LENGTH: 32,               // Cryptographic key length in bytes
+  IV_LENGTH: 12,                // Initialization vector length
+  SALT_LENGTH: 32,              // Salt length for key derivation
+  MAX_MESSAGE_SIZE: 1024 * 1024, // Maximum message size (1MB)
+  RATE_LIMIT_WINDOW: 60000,     // Rate limit window (1 minute)
+  RATE_LIMIT_MAX_REQUESTS: 100  // Maximum requests per window
+};
+```
 
 ## Version History
+
+### v2.1.0 (Security Release)
+- **CRITICAL**: Removed all cryptographic material logging
+- **SECURITY**: Added comprehensive input validation
+- **SECURITY**: Implemented constant-time comparisons
+- **SECURITY**: Added rate limiting protection
+- **SECURITY**: Configurable security parameters
+- **SECURITY**: Secure error handling
+- **SECURITY**: Message size limits
+- **SECURITY**: Key length validation
+- **SECURITY**: Base64 format validation
 
 ### v2.0.0
 - Enhanced long message chain support (50+ messages)
