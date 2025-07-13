@@ -651,11 +651,11 @@ class SessionManager {
 }
 
 class EnvelopeEncryption {
-  static async sealEnvelope(user, to, message) {
+  static async sealEnvelope(user, card, message) {
     CryptoUtils.validateMessage(message);
     CryptoUtils.checkRateLimit(`envelope_${user.pub ? Array.from(user.pub.slice(0, 8)).join('') : 'unknown'}`);
     
-    const session = await user.createSession(to);
+    const session = await user.createSession(card);
     const encrypted = await session.send(message);
     return encrypted;
   }
@@ -810,8 +810,8 @@ class User {
     return { card, secret };
   }
 
-  async sealEnvelope(to, message) {
-    return await EnvelopeEncryption.sealEnvelope(this, to, message);
+  async sealEnvelope(card, message) {
+    return await EnvelopeEncryption.sealEnvelope(this, card, message);
   }
 
   async openEnvelope(envelope, secretOPK) {

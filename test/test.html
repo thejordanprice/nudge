@@ -126,7 +126,7 @@
         </div>
     </div>
 
-    <script src="encryption.js"></script>
+    <script src="../encryption.js"></script>
     <script>
         let testResults = [];
         let currentTest = 0;
@@ -157,7 +157,8 @@
             // Also capture important debug messages for test output
             const message = args.join(' ');
             if (message.includes('🔍') || message.includes('❌') || message.includes('✅') || 
-                message.includes('openInitRatchet') || message.includes('ratchetDecrypt')) {
+                message.includes('openInitRatchet') || message.includes('ratchetDecrypt') ||
+                message.includes('Error') || message.includes('Failed')) {
                 log(`[CONSOLE] ${message}`);
             }
             
@@ -345,15 +346,18 @@
                     timestamp: Date.now()
                 };
                 
-                // Alice seals an envelope for Bob
-                const envelope = await alice.sealEnvelope(bob.getID(), testMessage);
+                // Bob creates a pre-key for Alice
+                const bobOPK = await bob.createOPK();
                 
-                if (!envelope || !envelope.type || envelope.type !== 'envelope') {
+                // Alice seals an envelope for Bob using Bob's card
+                const envelope = await alice.sealEnvelope(bobOPK.card, testMessage);
+                
+                if (!envelope || !envelope.header || !envelope.ciphertext) {
                     throw new Error('Invalid envelope structure');
                 }
                 
-                // Bob opens the envelope
-                const opened = await bob.openEnvelope(envelope);
+                // Bob opens the envelope using his secret OPK
+                const opened = await bob.openEnvelope(envelope, bobOPK.secret);
                 
                 if (!opened || !opened.plaintext) {
                     throw new Error('Failed to open envelope');
